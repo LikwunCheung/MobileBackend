@@ -126,7 +126,8 @@ def register(request, body, *args, **kwargs):
         else:
             if existed_account.update_date + VALIDATE_EXPIRED / 10 < timestamp:
                 logger.info('Resend Validation Email: %s' % existed_account)
-                content = str(VALIDATE_TEMPLATE).replace(PATTERN_CODE, str(existed_record.code))
+                content = str(VALIDATE_TEMPLATE).replace(PATTERN_NICKNAME, existed_account.nickname)\
+                    .replace(PATTERN_CODE, str(existed_record.code))
                 smtp_thread.put_task(SendEmailAction.REGISTER.value, existed_account.account_id,
                                      existed_record.record_id, existed_account.email, content)
             resp = init_http_response_my_enum(RespCode.resend_email)
@@ -134,11 +135,12 @@ def register(request, body, *args, **kwargs):
 
     expired = timestamp + VALIDATE_EXPIRED  # 15min
     code = get_validate_code()
+    nickname = DEFAULT_NICKNAME + str(get_validate_code(10))
 
     try:
         with transaction.atomic():
             account = Account(email=register_dto.email, password=register_dto.password_md5, avatar_url=DEFAULT_AVATAR,
-                              nickname=DEFAULT_NICKNAME, major=DEFAULT_MAJOR, status=AccountStatus.created.key,
+                              nickname=nickname, major=DEFAULT_MAJOR, status=AccountStatus.created.key,
                               create_date=timestamp, update_date=timestamp)
             account.save()
 
@@ -150,7 +152,7 @@ def register(request, body, *args, **kwargs):
         resp = init_http_response_my_enum(RespCode.server_error)
         return make_json_response(resp=resp)
 
-    content = str(VALIDATE_TEMPLATE).replace(PATTERN_CODE, str(record.code))
+    content = str(VALIDATE_TEMPLATE).replace(PATTERN_NICKNAME, nickname).replace(PATTERN_CODE, str(record.code))
     smtp_thread.put_task(SendEmailAction.REGISTER.value, account.account_id, record.record_id, account.email, content)
 
     resp = init_http_response_my_enum(RespCode.success)

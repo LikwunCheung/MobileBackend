@@ -20,7 +20,7 @@ GMAIL_PORT = 587
 GMAIL_ACCOUNT = 'swen90013.2020.sp@gmail.com'
 GMAIL_PASSWORD = 'fvwdissshcpobsdl'
 
-VALIDATE_TEMPLATE = 'Dear user,\n\n' \
+VALIDATE_TEMPLATE = 'Dear <NICKNAME>,\n\n' \
                     'Welcome to join CampusEvent!\n' \
                     'Please enter the following verification code to verify your email within 15 minutes!\n\n' \
                     '<CODE>\n\n' \
