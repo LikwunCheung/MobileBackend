@@ -128,7 +128,7 @@ def register(request, body, *args, **kwargs):
                 logger.info('Resend Validation Email: %s' % existed_account)
                 content = str(VALIDATE_TEMPLATE).replace(PATTERN_NICKNAME, existed_account.nickname)\
                     .replace(PATTERN_CODE, str(existed_record.code))
-                smtp_thread.put_task(SendEmailAction.REGISTER.value, existed_account.account_id,
+                smtp_thread.put_task(SendEmailAction.register.value, existed_account.account_id,
                                      existed_record.record_id, existed_account.email, content)
             resp = init_http_response_my_enum(RespCode.resend_email)
             return make_json_response(resp=resp)
@@ -153,7 +153,7 @@ def register(request, body, *args, **kwargs):
         return make_json_response(resp=resp)
 
     content = str(VALIDATE_TEMPLATE).replace(PATTERN_NICKNAME, nickname).replace(PATTERN_CODE, str(record.code))
-    smtp_thread.put_task(SendEmailAction.REGISTER.value, account.account_id, record.record_id, account.email, content)
+    smtp_thread.put_task(SendEmailAction.register.value, account.account_id, record.record_id, account.email, content)
 
     resp = init_http_response_my_enum(RespCode.success)
     return make_json_response(resp=resp)
@@ -237,7 +237,7 @@ def forget_password(request, body, *args, **kwargs):
     forget.save()
 
     content = str(FORGET_TEMPLATE).replace(PATTERN_NICKNAME, account.nickname).replace(PATTERN_CODE, str(forget.code))
-    smtp_thread.put_task(SendEmailAction.FORGET.value, account.account_id, forget.record_id, account.email, content)
+    smtp_thread.put_task(SendEmailAction.forget.value, account.account_id, forget.record_id, account.email, content)
 
     resp = init_http_response_my_enum(RespCode.success)
     return make_json_response(resp=resp)

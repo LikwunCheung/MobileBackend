@@ -37,6 +37,8 @@ class RespCode(MyEnum):
     expired = Choice(-10, 'expired')
     invalid_file = Choice(-11, 'invalid file id')
     validate_fail = Choice(-12, 'validate fail')
+    existed_friend = Choice(-13, 'existed friend')
+    existed_application = Choice(-14, 'existed application')
 
 
 class AccountStatus(MyEnum):
@@ -52,6 +54,18 @@ class Status(MyEnum):
     valid = Choice(1, 'valid')
 
 
+class FriendApplyStatus(MyEnum):
+    created = Choice(0, 'created')
+    wait_accept = Choice(1, 'wait_accept')
+    accept = Choice(2, 'accept')
+    reject = Choice(3, 'reject')
+
+
 class SendEmailAction(Enum):
-    REGISTER = 0
-    FORGET = 1
+    register = 0
+    forget = 1
+
+
+class FriendApplyAction(Enum):
+    accept = 1
+    reject = 2

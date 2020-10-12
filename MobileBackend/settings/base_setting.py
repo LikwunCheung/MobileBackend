@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'MobileBackend.account',
+    'MobileBackend.friend',
+    'MobileBackend.event',
     'MobileBackend.api',
 ]
 

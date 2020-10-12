@@ -49,13 +49,25 @@ class UpdateProfileDTO(object):
         return hashlib.sha3_256((self.new_password + SALT).encode()).hexdigest()
 
 
-class TabDTO(object):
+class FriendApplyDTO(object):
 
     def __init__(self):
-        self.title = None
-        self.content = None
+        self.friend_id = None
+        self.message = None
 
     @property
     def is_empty(self):
-        return not self.title or not self.content
+        return not self.friend_id or not self.message
+
+
+class FriendActionDTO(object):
+
+    def __init__(self):
+        self.request_id = None
+        self.action = None
+
+    @property
+    def is_empty(self):
+        return not self.request_id or not self.action
+
 

@@ -56,6 +56,7 @@ def send_email(title: str, address: str, content: str):
         message[TO] = Header(address, UTF8)
         message[SUBJECT] = Header(title, UTF8)
 
+        connector.login(GMAIL_ACCOUNT, GMAIL_PASSWORD)
         connector.sendmail(GMAIL_ACCOUNT, address, message.as_string())
         return True
     except Exception as e:
@@ -70,7 +71,7 @@ class SendEmailPool(threading.Thread):
         self.count = 0
         self.size = size
         self.pool = Queue(self.size)
-        threading.Thread.__init__(self)
+        super(SendEmailPool, self).__init__()
 
     def put_task(self, action, account_id, record_id, address, content):
         logger.info(u'[SMTP] Receive: %d %d %d %s %s' % (action, account_id, record_id, address, content))
@@ -87,10 +88,9 @@ class SendEmailPool(threading.Thread):
         task = self.pool.get(block=True, timeout=None)
         action = SendEmailAction(task['action'])
 
+        if action == SendEmailAction.register:
 
-        if action == SendEmailAction.REGISTER:
-
-            logger.info(u'[SMTP] Send Email: %d %s' % (self.count, str(task)))
+            logger.info(u'[SMTP] Send Register Email: %d %s' % (self.count, str(task)))
             try:
                 record = RegisterRecord.objects.get(record_id=task['record_id'], status=Status.valid.key)
                 account = Account.objects.get(account_id=task['account_id'], status__lt=AccountStatus.valid.key)
@@ -116,12 +116,11 @@ class SendEmailPool(threading.Thread):
             else:
                 self.pool.put(task)
 
-        elif action == SendEmailAction.FORGET:
+        elif action == SendEmailAction.forget:
 
-            logger.info(u'[SMTP] Send Email: %d %s' % (self.count, str(task)))
+            logger.info(u'[SMTP] Send Forget Email: %d %s' % (self.count, str(task)))
             try:
                 record = ForgetPassword.objects.get(record_id=task['record_id'], status=Status.valid.key)
-                account = Account.objects.get(account_id=task['account_id'], status=AccountStatus.valid.key)
             except ObjectDoesNotExist as e:
                 logger.info('[SMTP] %s' % e)
                 return
