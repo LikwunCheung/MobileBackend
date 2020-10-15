@@ -34,7 +34,7 @@ class ValidateDTO(object):
 
     @property
     def is_empty(self):
-        return not self.email or not self.code or not self.password
+        return not self.email or not self.code
 
     @property
     def password_md5(self):
