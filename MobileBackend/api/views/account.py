@@ -270,9 +270,12 @@ def forget_validate(request, body, *args, **kwargs):
             resp = init_http_response_my_enum(RespCode.expired)
             return make_json_response(resp=resp)
 
-        record.status = Status.invalid.key
-        record.update_date = timestamp
-        record.save()
+        with transaction.atomic():
+            account.password = validate_dto.password_md5
+            account.save()
+            record.status = Status.invalid.key
+            record.update_date = timestamp
+            record.save()
 
     except ObjectDoesNotExist as e:
         logger.info('Validate Error: %s' % e)

@@ -30,10 +30,15 @@ class ValidateDTO(object):
     def __init__(self):
         self.email = None
         self.code = None
+        self.password = None
 
     @property
     def is_empty(self):
-        return not self.email or not self.code
+        return not self.email or not self.code or not self.password
+
+    @property
+    def password_md5(self):
+        return hashlib.sha3_256((self.password + SALT).encode()).hexdigest()
 
 
 class UpdateProfileDTO(object):
