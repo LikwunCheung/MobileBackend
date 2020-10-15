@@ -7,10 +7,9 @@ from django.db.models import ObjectDoesNotExist
 from django.db import transaction
 
 from ...api.dto.dto import FriendApplyDTO, FriendActionDTO
-from ...account.models import Account, RegisterRecord, ForgetPassword
+from ...account.models import Account
 from ...friend.models import SocialApply, SocialRelation
-from ...common.utils import body_extract, mills_timestamp, init_http_response_my_enum, make_json_response, \
-    get_validate_code
+from ...common.utils import body_extract, mills_timestamp, init_http_response_my_enum, make_json_response
 from ...common.wrapper import check_body, check_user_login
 from ...common.choices import RespCode, FriendApplyStatus, Status, AccountStatus, FriendApplyAction
 from ...common.config import *
@@ -230,4 +229,34 @@ def friend_accept(request, body, *args, **kwargs):
 @check_user_login
 @check_body
 def remove_friend(request, body, *args, **kwargs):
-    pass
+
+    account_id = kwargs['account_id']
+    friend_id = body.get('friend_id', None)
+    if not friend_id:
+        resp = init_http_response_my_enum(RespCode.invalid_parameter)
+        return make_json_response(resp=resp)
+
+    try:
+        timestamp = mills_timestamp()
+        friend_from = SocialRelation.objects.get(account_id=account_id, friend_id=friend_id, status=Status.valid.key)
+        friend_to = SocialRelation.objects.get(account_id=friend_id, friend_id=account_id, status=Status.valid.key)
+
+        friend_from.update_date = timestamp
+        friend_from.status = Status.invalid.key
+        friend_to.update_date = timestamp
+        friend_to.status = Status.invalid.key
+
+        with transaction.atomic():
+            friend_from.save()
+            friend_to.save()
+
+        friend_list_notice.set_notice(account_id, 'flag', 1)
+        friend_list_notice.set_notice(friend_id, 'flag', 1)
+    except ObjectDoesNotExist as e:
+        resp = init_http_response_my_enum(RespCode.invalid_parameter)
+        return make_json_response(resp=resp)
+
+    resp = init_http_response_my_enum(RespCode.success)
+    return make_json_response(resp=resp)
+
+
