@@ -164,7 +164,8 @@ def get_event_detail(request, event_id, *args, **kwargs):
         resp = init_http_response_my_enum(RespCode.invalid_parameter)
         return make_json_response(resp=resp)
 
-    joined_event = EventParticipate.objects.filter(event_id=event_id, status=Status.valid.key).only('account_id')
+    joined_event = EventParticipate.objects.filter(event_id=event_id, status=Status.valid.key).order_by('create_date')\
+        .only('account_id')
     account_ids = [joined.account_id for joined in joined_event]
 
     accounts = Account.objects.filter(account_id__in=account_ids, status=AccountStatus.valid.key)
@@ -271,8 +272,9 @@ def quit_event(request, body, *args, **kwargs):
 
     try:
         existed_join = EventParticipate.objects.get(account_id=account_id, event_id=event_id, status=Status.valid.key)
+        existed_event = Event.objects.get(event_id=event_id, status=Status.valid.key)
 
-        if existed_join.account_id == account_id:
+        if existed_join.account_id == existed_event.account_id:
             resp = init_http_response_my_enum(RespCode.invalid_operation)
             return make_json_response(resp=resp)
 
@@ -325,7 +327,8 @@ def get_comment(request, event_id, *args, **kwargs):
     offset = int(request.GET.get('offset', 0))
     size = int(request.GET.get('size', 20))
 
-    comments = EventComment.objects.filter(event_id=event_id, status=Status.valid.key)[offset: offset + size + 1]
+    comments = EventComment.objects.filter(event_id=event_id, status=Status.valid.key)\
+        .order_by('-create_date')[offset: offset + size + 1]
     has_more = 0
     if len(comments) > size:
         comments = comments[:size]
