@@ -76,3 +76,28 @@ class FriendActionDTO(object):
         return not self.request_id or not self.action
 
 
+class LocationDTO(object):
+
+    def __init__(self):
+        self.x = None
+        self.y = None
+        self.name = None
+
+    @property
+    def is_empty(self):
+        return not self.x or not self.y or not self.name
+
+
+class EventDTO(object):
+
+    def __init__(self):
+        self.topic = None
+        self.description = None
+        self.location = LocationDTO()
+        self.event_time = None
+
+    @property
+    def is_empty(self):
+        return not self.topic or not self.description or not self.event_time or self.location.is_empty
+
+

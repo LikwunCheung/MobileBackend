@@ -43,7 +43,11 @@ def body_extract(body: dict, obj: object):
     """
     for i in obj.__dict__.keys():
         if i in body:
-            obj.__setattr__(i, body.get(i))
+            v = body.get(i)
+            if isinstance(v, dict):
+                body_extract(v, obj.__getattribute__(i))
+            else:
+                obj.__setattr__(i, v)
 
 
 def mills_timestamp():

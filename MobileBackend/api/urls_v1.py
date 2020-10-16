@@ -4,7 +4,7 @@ from django.urls import path
 
 from .views.account import login, register, validate, forget_password, forget_validate
 from .views.friend import friend_router, search_friend, friend_notice, friend_accept, remove_friend
-from .views.event import event_router, event_explore, join_event, remove_event
+from .views.event import event_router, event_explore, join_event, quit_event, comment_router, remove_comment
 from .views.profile import profile_router
 from .views.file import file_router
 
@@ -31,7 +31,9 @@ urlpatterns = [
     path('event/<int:id>', event_router),
     path('event/explore', event_explore),
     path('event/join', join_event),
-    path('event/remove', remove_event),
+    path('event/quit', quit_event),
+    path('event/<int:id>/comment', comment_router),
+    path('event/comment/remove', remove_comment),
 
     # Picture Service
     path('picture', file_router),
