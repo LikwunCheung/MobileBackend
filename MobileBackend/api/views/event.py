@@ -9,7 +9,7 @@ from django.db import transaction
 from ...api.dto.dto import EventDTO
 from ...account.models import Account
 from ...friend.models import SocialRelation
-from ...event.models import Event, EventParticipate
+from ...event.models import Event, EventParticipate, EventComment
 from ...common.utils import body_extract, mills_timestamp, init_http_response_my_enum, make_json_response
 from ...common.wrapper import check_body, check_user_login
 from ...common.choices import RespCode, FriendApplyStatus, Status, AccountStatus, FriendApplyAction
@@ -110,8 +110,8 @@ def get_event_list(request, *args, **kwargs):
     joined_event = EventParticipate.objects.filter(account_id=account_id, status=Status.valid.key).only('event_id')
 
     event_ids = [joined.event_id for joined in joined_event]
-    events = Event.objects.filter(event_id__in=event_ids, status=Status.valid.key)\
-        .order_by('event_date', 'event_id')[offset: offset + size + 1]
+    events = Event.objects.filter(event_id__in=event_ids, status=Status.valid.key) \
+                 .order_by('event_date', 'event_id')[offset: offset + size + 1]
 
     has_more = 0
     if len(events) > size:
@@ -120,7 +120,7 @@ def get_event_list(request, *args, **kwargs):
 
     host_ids = [event.account_id for event in events]
     accounts = Account.objects.filter(account_id__in=host_ids, status=AccountStatus.valid.key)
-    friends = SocialRelation.objects.filter(account_id=account_id, friend_id__in=host_ids, status=Status.valid.key)\
+    friends = SocialRelation.objects.filter(account_id=account_id, friend_id__in=host_ids, status=Status.valid.key) \
         .only('friend_id')
 
     account_map = dict()
@@ -156,7 +156,6 @@ def get_event_list(request, *args, **kwargs):
 
 
 def get_event_detail(request, event_id, *args, **kwargs):
-
     account_id = kwargs['account_id']
 
     try:
@@ -170,7 +169,7 @@ def get_event_detail(request, event_id, *args, **kwargs):
 
     accounts = Account.objects.filter(account_id__in=account_ids, status=AccountStatus.valid.key)
 
-    friends = SocialRelation.objects.filter(account_id=account_id, friend_id__in=account_ids, status=Status.valid.key)\
+    friends = SocialRelation.objects.filter(account_id=account_id, friend_id__in=account_ids, status=Status.valid.key) \
         .only('friend_id')
     friend_ids = set([friend.friend_id for friend in friends])
     friend_ids.add(account_id)
@@ -208,6 +207,27 @@ def get_event_detail(request, event_id, *args, **kwargs):
     return make_json_response(resp=resp)
 
 
+@require_http_methods(['POST'])
+@check_user_login
+@check_body
+def remove_event(request, body, *args, **kwargs):
+    account_id = kwargs['account_id']
+    event_id = body['event_id']
+
+    try:
+        existed_event = Event.objects.get(event_id=event_id, account_id=account_id, status=Status.valid.key)
+        existed_event.status = Status.invalid.key
+        existed_event.save()
+
+        EventParticipate.objects.filter(event_id=event_id, status=Status.valid.key) \
+            .update(dict(status=Status.invalid.key))
+    except ObjectDoesNotExist as e:
+        resp = init_http_response_my_enum(RespCode.invalid_parameter)
+        return make_json_response(resp=resp)
+    resp = init_http_response_my_enum(RespCode.success)
+    return make_json_response(resp=resp)
+
+
 @require_http_methods(['GET'])
 @check_user_login
 def event_explore(request, *args, **kwargs):
@@ -218,36 +238,139 @@ def event_explore(request, *args, **kwargs):
 @check_user_login
 @check_body
 def join_event(request, body, *args, **kwargs):
-    pass
+
+    account_id = kwargs['account_id']
+    event_id = body.get('event_id', None)
+    if not event_id:
+        resp = init_http_response_my_enum(RespCode.invalid_parameter)
+        return make_json_response(resp=resp)
+
+    existed_join = EventParticipate.objects.filter(account_id=account_id, event_id=event_id, status=Status.valid.key)
+    if len(existed_join):
+        resp = init_http_response_my_enum(RespCode.success)
+        return make_json_response(resp=resp)
+
+    timestamp = mills_timestamp()
+    event_join = EventParticipate(account_id=account_id, event_id=event_id, status=Status.valid.key,
+                                  create_date=timestamp, update_date=timestamp)
+    event_join.save()
+    resp = init_http_response_my_enum(RespCode.success)
+    return make_json_response(resp=resp)
 
 
 @require_http_methods(['POST'])
 @check_user_login
 @check_body
 def quit_event(request, body, *args, **kwargs):
-    pass
+
+    account_id = kwargs['account_id']
+    event_id = body.get('event_id', None)
+    if not event_id:
+        resp = init_http_response_my_enum(RespCode.invalid_parameter)
+        return make_json_response(resp=resp)
+
+    try:
+        existed_join = EventParticipate.objects.get(account_id=account_id, event_id=event_id, status=Status.valid.key)
+
+        if existed_join.account_id == account_id:
+            resp = init_http_response_my_enum(RespCode.invalid_operation)
+            return make_json_response(resp=resp)
+
+        existed_join.update_date = mills_timestamp()
+        existed_join.status = Status.invalid.key
+        existed_join.save()
+    except ObjectDoesNotExist as e:
+        resp = init_http_response_my_enum(RespCode.invalid_parameter)
+        return make_json_response(resp=resp)
+
+    resp = init_http_response_my_enum(RespCode.success)
+    return make_json_response(resp=resp)
 
 
 @require_http_methods(['GET', 'POST'])
 @check_user_login
 def comment_router(request, *args, **kwargs):
     event_id = kwargs.get('id', None)
+    if not event_id:
+        resp = init_http_response_my_enum(RespCode.invalid_parameter)
+        return make_json_response(resp=resp)
+
     if request.method == 'POST':
-        return create_comment(request, event_id, *args, **kwargs)
+        return create_comment(request, *args, **kwargs)
     elif request.method == 'GET':
         return get_comment(request, event_id, *args, **kwargs)
 
 
-def create_comment(request, event_id, *args, **kwargs):
-    pass
+@check_body
+def create_comment(request, body, *args, **kwargs):
+
+    account_id = kwargs['account_id']
+    event_id = kwargs['id']
+    content = body.get('content', None)
+    if not content:
+        resp = init_http_response_my_enum(RespCode.invalid_parameter)
+        return make_json_response(resp=resp)
+
+    timestamp = mills_timestamp()
+    comment = EventComment(event_id=event_id, account_id=account_id, content=content, status=Status.valid.key,
+                           update_date=timestamp, create_date=timestamp)
+    comment.save()
+
+    resp = init_http_response_my_enum(RespCode.success)
+    return make_json_response(resp=resp)
 
 
 def get_comment(request, event_id, *args, **kwargs):
-    pass
+
+    offset = int(request.GET.get('offset', 0))
+    size = int(request.GET.get('size', 20))
+
+    comments = EventComment.objects.filter(event_id=event_id, status=Status.valid.key)[offset: offset + size + 1]
+    has_more = 0
+    if len(comments) > size:
+        comments = comments[:size]
+        has_more = 1
+
+    account_ids = set([comment.account_id for comment in comments])
+    accounts = Account.objects.filter(account_id__in=account_ids, status=AccountStatus.valid.key)
+    account_map = dict()
+    for account in accounts:
+        account_map[account.account_id] = account
+
+    data = dict(
+        comment=[dict(
+            comment_id=comment.comment_id,
+            content=comment.content,
+            create_time=comment.create_date,
+            author=dict(
+                account_id=comment.account_id,
+                avatar=account_map[comment.account_id].avatar_url,
+                nickname=account_map[comment.account_id].nickname,
+            ),
+        ) for comment in comments],
+        offset=offset + len(comments),
+        has_more=has_more,
+    )
+    resp = init_http_response_my_enum(RespCode.success, data)
+    return make_json_response(resp=resp)
 
 
 @require_http_methods(['POST'])
 @check_user_login
 @check_body
 def remove_comment(request, body, *args, **kwargs):
-    pass
+
+    account_id = kwargs['account_id']
+    comment_id = body.get('comment_id', None)
+
+    try:
+        comment = EventComment.objects.get(comment_id=comment_id, account_id=account_id, status=Status.valid.key)
+        comment.status = Status.invalid.key
+        comment.update_date = mills_timestamp()
+        comment.save()
+    except ObjectDoesNotExist as e:
+        resp = init_http_response_my_enum(RespCode.invalid_parameter)
+        return make_json_response(resp=resp)
+
+    resp = init_http_response_my_enum(RespCode.success)
+    return make_json_response(resp=resp)
