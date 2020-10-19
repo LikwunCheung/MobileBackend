@@ -103,6 +103,7 @@ def update_event(request, body, *args, **kwargs):
 
 
 def get_event_list(request, *args, **kwargs):
+
     account_id = kwargs['account_id']
     offset = int(request.GET.get('offset', 0))
     size = int(request.GET.get('size', 20))
@@ -111,7 +112,7 @@ def get_event_list(request, *args, **kwargs):
 
     event_ids = [joined.event_id for joined in joined_event]
     events = Event.objects.filter(event_id__in=event_ids, status=Status.valid.key) \
-                 .order_by('event_date', 'event_id')[offset: offset + size + 1]
+        .order_by('event_date', 'event_id')[offset: offset + size + 1]
 
     has_more = 0
     if len(events) > size:
@@ -232,7 +233,56 @@ def remove_event(request, body, *args, **kwargs):
 @require_http_methods(['GET'])
 @check_user_login
 def event_explore(request, *args, **kwargs):
-    pass
+
+    account_id = kwargs['account_id']
+    offset = int(request.GET.get('offset', 0))
+    size = int(request.GET.get('size', 20))
+
+    events = Event.objects.exclude(event_id__in=EventParticipate.objects.filter(account_id=account_id,
+                                                                                status=Status.valid.key)
+                                   .values_list('event_id', flat=True), status=Status.valid.key)\
+        .order_by('event_date', 'event_id')[offset: offset + size + 1]
+
+    has_more = 0
+    if len(events) > size:
+        events = events[:size]
+        has_more = 1
+
+    account_ids = [event.account_id for event in events]
+    accounts = Account.objects.filter(account_id__in=account_ids, status=AccountStatus.valid.key)
+    friends = SocialRelation.objects.filter(account_id=account_id, friend_id__in=account_ids, status=Status.valid.key)\
+        .only('friend_id')
+
+    account_map = dict()
+    for account in accounts:
+        account_map[account.account_id] = account
+    friend_ids = set(friends.values_list('friend_id', flat=True))
+    friend_ids.add(account_id)
+
+    data = dict(
+        event=[dict(
+            event_id=e.event_id,
+            topic=e.topic,
+            description=e.description,
+            create_time=e.create_date,
+            event_time=e.event_date,
+            location=dict(
+                x=e.location_x,
+                y=e.location_y,
+                name=e.location_name,
+            ),
+            host=dict(
+                avatar=account_map[e.account_id].avatar_url,
+                nickname=account_map[e.account_id].nickname,
+                account_id=e.account_id,
+                is_friend=1 if e.account_id in friend_ids else 0,
+            ),
+        ) for e in events],
+        offset=offset + len(events),
+        has_more=has_more,
+    )
+    resp = init_http_response_my_enum(RespCode.success, data)
+    return make_json_response(resp=resp)
 
 
 @require_http_methods(['POST'])
