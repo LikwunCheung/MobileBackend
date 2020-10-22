@@ -130,6 +130,9 @@ def register(request, body, *args, **kwargs):
                     .replace(PATTERN_CODE, str(existed_record.code))
                 smtp_thread.put_task(SendEmailAction.register.value, existed_account.account_id,
                                      existed_record.record_id, existed_account.email, content)
+
+                existed_account.update_date = timestamp
+                existed_account.save()
             resp = init_http_response_my_enum(RespCode.resend_email)
             return make_json_response(resp=resp)
 
@@ -224,10 +227,20 @@ def forget_password(request, body, *args, **kwargs):
         resp = init_http_response_my_enum(RespCode.invalid_parameter)
         return make_json_response(resp=resp)
 
+    timestamp = mills_timestamp()
     existed_forget = ForgetPassword.objects.filter(account_id=account.account_id, status=Status.valid.key).first()
     if existed_forget:
-        existed_forget.status = Status.invalid.key
-        existed_forget.save()
+        if existed_forget.expired > timestamp:
+            if existed_forget.update_data + FORGET_EXPIRED / 5 < timestamp:
+                content = str(FORGET_TEMPLATE).replace(PATTERN_NICKNAME, account.nickname)\
+                    .replace(PATTERN_CODE, str(existed_forget.code))
+                smtp_thread.put_task(SendEmailAction.forget.value, existed_forget.account_id, existed_forget.record_id,
+                                     account.email, content)
+                resp = init_http_response_my_enum(RespCode.resend_email)
+                return make_json_response(resp=resp)
+        else:   
+            existed_forget.status = Status.invalid.key
+            existed_forget.save()
 
     code = get_validate_code()
     timestamp = mills_timestamp()
