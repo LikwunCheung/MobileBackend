@@ -196,6 +196,7 @@ def friend_accept(request, body, *args, **kwargs):
 
     timestamp = mills_timestamp()
     if apply.expired <= timestamp:
+        friend_apply_notice.remove_notice(account_id, apply.account_id)
         apply.status = FriendApplyStatus.reject.key
         apply.update_date = timestamp
         apply.save()
@@ -210,6 +211,7 @@ def friend_accept(request, body, *args, **kwargs):
         with transaction.atomic():
             friend_list_notice.set_notice(account_id, 'flag', 1)
             friend_list_notice.set_notice(apply.account_id, 'flag', 1)
+            friend_apply_notice.remove_notice(account_id, apply.account_id)
 
             SocialRelation(account_id=account_id, friend_id=apply.account_id, status=Status.valid.key,
                            update_date=timestamp, create_date=timestamp).save()
@@ -217,6 +219,7 @@ def friend_accept(request, body, *args, **kwargs):
                            update_date=timestamp, create_date=timestamp).save()
             apply.save()
     elif action == FriendApplyAction.reject:
+        friend_apply_notice.remove_notice(account_id, apply.account_id)
         apply.status = FriendApplyStatus.reject.key
         apply.update_date = timestamp
         apply.save()
