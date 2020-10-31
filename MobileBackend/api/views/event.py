@@ -105,10 +105,16 @@ def update_event(request, body, *args, **kwargs):
 def get_event_list(request, *args, **kwargs):
 
     account_id = kwargs['account_id']
+    friend_id = request.GET.get('friend_id', None)
     offset = int(request.GET.get('offset', 0))
     size = int(request.GET.get('size', 20))
 
-    joined_event = EventParticipate.objects.filter(account_id=account_id, status=Status.valid.key).only('event_id')
+    friend = None
+    if friend_id:
+        joined_event = EventParticipate.objects.filter(account_id=friend_id, status=Status.valid.key).only('event_id')
+        friend = Account.objects.get(account_id=friend_id, status=AccountStatus.valid.key)
+    else:
+        joined_event = EventParticipate.objects.filter(account_id=account_id, status=Status.valid.key).only('event_id')
 
     event_ids = [joined.event_id for joined in joined_event]
     events = Event.objects.filter(event_id__in=event_ids, status=Status.valid.key) \
@@ -152,6 +158,10 @@ def get_event_list(request, *args, **kwargs):
         offset=offset + len(events),
         has_more=has_more,
     )
+
+    if friend_id:
+        data['avatar'] = friend.avatar_url
+        data['nickname'] = friend.nickname
     resp = init_http_response_my_enum(RespCode.success, data)
     return make_json_response(resp=resp)
 
