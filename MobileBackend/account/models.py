@@ -11,6 +11,7 @@ class Account(models.Model):
     avatar_url = models.CharField(max_length=256)
     nickname = models.CharField(max_length=64)
     major = models.CharField(max_length=128)
+    school = models.CharField(max_length=128)
 
     status = models.IntegerField(blank=False, null=False)
     create_date = models.BigIntegerField(blank=False, null=False)

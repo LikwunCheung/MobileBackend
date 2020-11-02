@@ -51,6 +51,7 @@ def login(request, body, *args, **kwargs):
         account_id=account.account_id,
         nickname=account.nickname,
         major=account.major,
+        school=account.school,
         avatar=account.avatar_url,
         token=token,
     )
@@ -144,7 +145,7 @@ def register(request, body, *args, **kwargs):
         with transaction.atomic():
             account = Account(email=register_dto.email, password=register_dto.password_md5, avatar_url=DEFAULT_AVATAR,
                               nickname=nickname, major=DEFAULT_MAJOR, status=AccountStatus.created.key,
-                              create_date=timestamp, update_date=timestamp)
+                              create_date=timestamp, update_date=timestamp, school=DEFAULT_MAJOR)
             account.save()
 
             record = RegisterRecord(account_id=account.account_id, code=code, expired=expired, status=Status.valid.key,
@@ -209,6 +210,7 @@ def validate(request, body, *args, **kwargs):
         token=token_manager.set_token(account.account_id),
         nickname=account.nickname,
         major=account.major,
+        school=account.school,
         avatar=account.avatar_url,
     )
     resp = init_http_response_my_enum(RespCode.success, data)
@@ -300,6 +302,7 @@ def forget_validate(request, body, *args, **kwargs):
         token=token_manager.set_token(account.account_id),
         nickname=account.nickname,
         major=account.major,
+        school=account.school,
         avatar=account.avatar_url,
     )
     resp = init_http_response_my_enum(RespCode.success, data)

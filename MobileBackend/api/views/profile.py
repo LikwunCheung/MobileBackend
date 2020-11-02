@@ -40,6 +40,7 @@ def get_profile(request, *args, **kwargs):
         nickname=account.nickname,
         avatar=account.avatar_url,
         major=account.major,
+        school=account.school,
     )
     resp = init_http_response_my_enum(RespCode.success, data)
     return make_json_response(resp=resp)
@@ -64,6 +65,8 @@ def update_profile(request, body, *args, **kwargs):
         account.nickname = update_profile_dto.nickname
     if update_profile_dto.major:
         account.major = update_profile_dto.major
+    if update_profile_dto.school:
+        account.school = update_profile_dto.school
     if update_profile_dto.avatar:
         account.avatar_url = update_profile_dto.avatar
     if update_profile_dto.new_password:

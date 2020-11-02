@@ -109,12 +109,13 @@ def get_event_list(request, *args, **kwargs):
     offset = int(request.GET.get('offset', 0))
     size = int(request.GET.get('size', 20))
 
-    friend = None
+    current_user = None
     if friend_id:
         joined_event = EventParticipate.objects.filter(account_id=friend_id, status=Status.valid.key).only('event_id')
-        friend = Account.objects.get(account_id=friend_id, status=AccountStatus.valid.key)
+        current_user = Account.objects.get(account_id=friend_id, status=AccountStatus.valid.key)
     else:
         joined_event = EventParticipate.objects.filter(account_id=account_id, status=Status.valid.key).only('event_id')
+        current_user = Account.objects.get(account_id=account_id, status=AccountStatus.valid.key)
 
     event_ids = [joined.event_id for joined in joined_event]
     events = Event.objects.filter(event_id__in=event_ids, status=Status.valid.key) \
@@ -126,6 +127,7 @@ def get_event_list(request, *args, **kwargs):
         events = events[:size]
 
     host_ids = [event.account_id for event in events]
+
     accounts = Account.objects.filter(account_id__in=host_ids, status=AccountStatus.valid.key)
     friends = SocialRelation.objects.filter(account_id=account_id, friend_id__in=host_ids, status=Status.valid.key) \
         .only('friend_id')
@@ -157,11 +159,10 @@ def get_event_list(request, *args, **kwargs):
         ) for e in events],
         offset=offset + len(events),
         has_more=has_more,
+        avatar=current_user.avatar_url,
+        nickname=current_user.nickname,
     )
 
-    if friend_id:
-        data['avatar'] = friend.avatar_url
-        data['nickname'] = friend.nickname
     resp = init_http_response_my_enum(RespCode.success, data)
     return make_json_response(resp=resp)
 
@@ -178,6 +179,7 @@ def get_event_detail(request, event_id, *args, **kwargs):
     joined_event = EventParticipate.objects.filter(event_id=event_id, status=Status.valid.key).order_by('create_date')\
         .only('account_id')
     account_ids = [joined.account_id for joined in joined_event]
+    user_joined = 1 if account_id in account_ids else 0
 
     accounts = Account.objects.filter(account_id__in=account_ids, status=AccountStatus.valid.key)
 
@@ -191,6 +193,7 @@ def get_event_detail(request, event_id, *args, **kwargs):
         account_map[account.account_id] = account
 
     data = dict(
+        joined=user_joined,
         event_id=existed_event.event_id,
         topic=existed_event.topic,
         description=existed_event.description,

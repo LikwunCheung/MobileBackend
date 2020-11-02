@@ -48,6 +48,7 @@ class UpdateProfileDTO(object):
         self.avatar = None
         self.major = None
         self.new_password = None
+        self.school = None
 
     @property
     def password_md5(self):
