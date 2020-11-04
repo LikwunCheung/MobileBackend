@@ -18,7 +18,8 @@ DATABASES = {
         'PASSWORD': 'mobile',
         'HOST': '52.187.104.237',
         'PORT': 8000,
-        'CHARSET': 'utf8mb4'
+        'CHARSET': 'utf8mb4',
+        'CONN_MAX_AGE': 600,
     }
 }
 
