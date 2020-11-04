@@ -16,8 +16,8 @@ DATABASES = {
         'NAME': 'mobile',
         'USER': 'mobile',
         'PASSWORD': 'mobile',
-        'HOST': '8.210.28.169',
-        'PORT': 8888,
+        'HOST': '52.187.104.237',
+        'PORT': 8000,
         'CHARSET': 'utf8mb4'
     }
 }
