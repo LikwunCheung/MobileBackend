@@ -233,7 +233,7 @@ def forget_password(request, body, *args, **kwargs):
     existed_forget = ForgetPassword.objects.filter(account_id=account.account_id, status=Status.valid.key).first()
     if existed_forget:
         if existed_forget.expired > timestamp:
-            if existed_forget.update_data + FORGET_EXPIRED / 5 < timestamp:
+            if existed_forget.update_date + FORGET_EXPIRED / 5 < timestamp:
                 content = str(FORGET_TEMPLATE).replace(PATTERN_NICKNAME, account.nickname)\
                     .replace(PATTERN_CODE, str(existed_forget.code))
                 smtp_thread.put_task(SendEmailAction.forget.value, existed_forget.account_id, existed_forget.record_id,
