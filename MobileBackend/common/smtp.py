@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 from email.header import Header
 
 from django.db.models import ObjectDoesNotExist
+from django.db.utils import OperationalError
 from django.db.transaction import atomic
 
 from .utils import mills_timestamp
@@ -75,7 +76,7 @@ class SendEmailPool(threading.Thread):
         super(SendEmailPool, self).__init__()
 
     def put_task(self, action, account_id, record_id, address, content):
-        logger.info(u'[SMTP] Receive: %d %d %d %s %s' % (action, account_id, record_id, address, content))
+        logger.info(u'[SMTP] Receive: %d %d %d %s' % (action, account_id, record_id, address))
 
         self.pool.put(dict(
             action=action,
@@ -97,6 +98,10 @@ class SendEmailPool(threading.Thread):
                 account = Account.objects.get(account_id=task['account_id'], status__lt=AccountStatus.valid.key)
             except ObjectDoesNotExist as e:
                 logger.info('[SMTP] %s' % e)
+                return
+            except OperationalError as e:
+                logger.info('[SMTP] %s' % e)
+                self.pool.put(task)
                 return
 
             if record.expired <= mills_timestamp():
@@ -124,6 +129,10 @@ class SendEmailPool(threading.Thread):
                 record = ForgetPassword.objects.get(record_id=task['record_id'], status=Status.valid.key)
             except ObjectDoesNotExist as e:
                 logger.info('[SMTP] %s' % e)
+                return
+            except OperationalError as e:
+                logger.info('[SMTP] %s' % e)
+                self.pool.put(task)
                 return
 
             if record.expired <= mills_timestamp():
