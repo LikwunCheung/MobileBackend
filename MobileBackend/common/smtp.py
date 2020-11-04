@@ -56,7 +56,7 @@ def send_email(title: str, address: str, content: str):
         message[TO] = Header(address, UTF8)
         message[SUBJECT] = Header(title, UTF8)
 
-        connector.login(GMAIL_ACCOUNT, GMAIL_PASSWORD)
+        init_smtp()
         connector.sendmail(GMAIL_ACCOUNT, address, message.as_string())
         connector.quit()
         return True
