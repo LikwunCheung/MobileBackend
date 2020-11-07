@@ -235,7 +235,7 @@ def remove_event(request, body, *args, **kwargs):
         existed_event.save()
 
         EventParticipate.objects.filter(event_id=event_id, status=Status.valid.key) \
-            .update(dict(status=Status.invalid.key))
+            .update(status=Status.invalid.key)
     except ObjectDoesNotExist as e:
         resp = init_http_response_my_enum(RespCode.invalid_parameter)
         return make_json_response(resp=resp)
