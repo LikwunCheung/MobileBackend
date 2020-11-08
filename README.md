@@ -1,9 +1,9 @@
-#Django Backend Of COMP90018 Mobile Computing Systems Programming
+# Django Backend Of COMP90018 Mobile Computing Systems Programming
 ***Must Run With Linux/MacOS***
 
-##Run directly:
+## Run directly:
 1. pip3 install -r requirement.txt
 1. python3 manage.py runserver --settings=ITProjectBackend.settings.prod 0:{port}
-##Run with Docker:
+## Run with Docker:
 1. sh build.sh
 1. docker run -d -p 8080:8080 --name itproject-backend itproject-backend
