@@ -254,7 +254,8 @@ def event_explore(request, *args, **kwargs):
 
     participate = EventParticipate.objects.filter(account_id=account_id, status=Status.valid.key)\
         .values_list('event_id', flat=True)
-    events = Event.objects.filter(status=Status.valid.key).order_by('event_date', 'event_id')[offset: offset + size + 1]
+    events = Event.objects.filter(status=Status.valid.key, event_date__gt=mills_timestamp())\
+        .order_by('event_date', 'event_id')[offset: offset + size + 1]
 
     has_more = 0
     if len(events) > size:
