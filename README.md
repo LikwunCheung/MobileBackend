@@ -3,7 +3,7 @@
 
 ## Run directly:
 1. pip3 install -r requirement.txt
-1. python3 manage.py runserver --settings=ITProjectBackend.settings.prod 0:{port}
+1. python3 manage.py runserver --settings=MobileBackend.settings.prod 0:8080
 ## Run with Docker:
 1. sh build.sh
-1. docker run -d -p 8080:8080 --name itproject-backend itproject-backend
+1. docker run -d -p 8080:8080 --name mobile-backend mobile-backend
