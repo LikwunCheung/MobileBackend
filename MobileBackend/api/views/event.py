@@ -3,7 +3,7 @@
 import logging
 
 from django.views.decorators.http import require_http_methods
-from django.db.models import ObjectDoesNotExist
+from django.db.models import ObjectDoesNotExist, Q
 from django.db import transaction
 
 from ...api.dto.dto import EventDTO
@@ -109,7 +109,6 @@ def get_event_list(request, *args, **kwargs):
     offset = int(request.GET.get('offset', 0))
     size = int(request.GET.get('size', 20))
 
-    current_user = None
     if friend_id:
         joined_event = EventParticipate.objects.filter(account_id=friend_id, status=Status.valid.key).only('event_id')
         current_user = Account.objects.get(account_id=friend_id, status=AccountStatus.valid.key)
@@ -155,6 +154,7 @@ def get_event_list(request, *args, **kwargs):
                 nickname=account_map[e.account_id].nickname,
                 account_id=e.account_id,
                 is_friend=1 if e.account_id in friend_ids else 0,
+                is_host=1 if e.account_id == account_id else 0,
             ),
         ) for e in events],
         offset=offset + len(events),
@@ -209,6 +209,7 @@ def get_event_detail(request, event_id, *args, **kwargs):
             nickname=account_map[existed_event.account_id].nickname,
             account_id=existed_event.account_id,
             is_friend=1 if existed_event.account_id in friend_ids else 0,
+            is_host=1 if existed_event.account_id == account_id else 0,
         ),
         paticipate=[dict(
             avatar=account_map[joined.account_id].avatar_url,
@@ -251,10 +252,9 @@ def event_explore(request, *args, **kwargs):
     offset = int(request.GET.get('offset', 0))
     size = int(request.GET.get('size', 20))
 
-    events = Event.objects.exclude(event_id__in=EventParticipate.objects.filter(account_id=account_id,
-                                                                                status=Status.valid.key)
-                                   .values_list('event_id', flat=True), status=Status.valid.key)\
-        .order_by('event_date', 'event_id')[offset: offset + size + 1]
+    participate = EventParticipate.objects.filter(account_id=account_id, status=Status.valid.key)\
+        .values_list('event_id', flat=True)
+    events = Event.objects.filter(status=Status.valid.key).order_by('event_date', 'event_id')[offset: offset + size + 1]
 
     has_more = 0
     if len(events) > size:
@@ -289,7 +289,9 @@ def event_explore(request, *args, **kwargs):
                 nickname=account_map[e.account_id].nickname,
                 account_id=e.account_id,
                 is_friend=1 if e.account_id in friend_ids else 0,
+                is_host=1 if e.account_id == account_id else 0,
             ),
+            is_joined=1 if e.event_id in participate else 0,
         ) for e in events],
         offset=offset + len(events),
         has_more=has_more,
